@@ -1,5 +1,10 @@
 const DB_KEY = "zahid-tech-pins-v1";
 const BACKUP_VERSION = 1;
+const APP_SHARE_DATA = {
+  title: "ZaHiD Tech — Pin & Find",
+  text: "Save your favourite locations and navigate back easily with ZaHiD Tech!",
+  url: "https://zahid-iyaz.github.io/ZaHiD-Tech/"
+};
 const GPS_OPTIONS = { enableHighAccuracy: true, timeout: 20000, maximumAge: 0 };
 const SAVE_MAX_AGE = 3000;
 const SAVE_MAX_ACCURACY = 30;
@@ -611,6 +616,31 @@ $("copyDestination").onclick = async event => {
     message(`Select and copy these coordinates: ${point}`);
   }
 };
+let shareStatusTimer;
+$("shareApp").onclick = async () => {
+  const status = $("shareStatus");
+  clearTimeout(shareStatusTimer);
+  status.textContent = "";
+
+  if (typeof navigator.share === "function") {
+    try {
+      await navigator.share(APP_SHARE_DATA);
+      return;
+    } catch (error) {
+      if (error?.name === "AbortError") return;
+    }
+  }
+
+  try {
+    await navigator.clipboard.writeText(APP_SHARE_DATA.url);
+    status.textContent = "App link copied.";
+    shareStatusTimer = setTimeout(() => { status.textContent = ""; }, 3000);
+  } catch {
+    $("shareUrl").value = APP_SHARE_DATA.url;
+    $("shareDialog").showModal();
+  }
+};
+$("shareUrl").onclick = event => event.currentTarget.select();
 $("choose").onclick = openSaved;
 $("settings").onclick = () => $("settingsDialog").showModal();
 $("manage").onclick = () => {

@@ -20,8 +20,12 @@
     <section class="map-wrap" aria-label="Saved locations map">
       <div id="map" aria-label="Interactive map"></div>
       <header class="masthead">
-        <h1><span class="brand-pin" aria-hidden="true"></span>ZaHiD Tech</h1>
+        <div class="masthead-brand">
+          <h1><span class="brand-pin" aria-hidden="true"></span>ZaHiD Tech</h1>
+          <button id="shareApp" class="share-app" type="button"><span class="share-icon" aria-hidden="true"></span>Share App</button>
+        </div>
         <button id="settings" class="settings" aria-label="Settings" aria-haspopup="dialog"><span aria-hidden="true">⚙︎</span></button>
+        <p id="shareStatus" class="share-status" role="status"></p>
       </header>
       <button id="liveToggle" class="live-toggle" role="switch" aria-label="Live Location" aria-checked="true">
         <span class="status-dot" aria-hidden="true"></span>
@@ -93,6 +97,12 @@
       <p id="editNameError" class="message" role="status"></p>
       <button type="submit">Save name</button>
     </form>
+  </dialog>
+
+  <dialog id="shareDialog" aria-labelledby="shareTitle">
+    <div class="dialog-heading"><h2 id="shareTitle">Share App</h2><button type="button" data-close="shareDialog" aria-label="Close Share App">×</button></div>
+    <label for="shareUrl">Select and copy this link</label>
+    <input id="shareUrl" type="text" readonly>
   </dialog>
 
   <dialog id="settingsDialog" aria-labelledby="settingsTitle">

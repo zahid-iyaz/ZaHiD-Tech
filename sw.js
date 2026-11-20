@@ -1,6 +1,6 @@
 const SCOPE = self.registration.scope;
 const CACHE_PREFIX = `zahid-tech-shell-${SCOPE}-`;
-const CACHE = `${CACHE_PREFIX}v8`;
+const CACHE = `${CACHE_PREFIX}v9`;
 const SHELL = [
   "./index.html", "./styles.css", "./app.js", "./manifest.webmanifest",
   "./icon-192.png", "./icon-512.png", "./vendor/leaflet/leaflet.css", "./vendor/leaflet/leaflet.js"

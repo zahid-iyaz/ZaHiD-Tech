@@ -31,9 +31,11 @@ h1, h2, h3, p { margin: 0; }
   position: absolute; z-index: 500; inset: var(--map-top) var(--gutter) auto;
   height: var(--header-height); border-radius: clamp(20px, 5vw, 38px);
   background: #FFEB00; color: #D50000;
-  display: grid; place-items: center; box-shadow: 0 3px 10px #102c5427;
+  display: grid; grid-template-columns: 1fr auto; align-items: center; padding-inline: 8px;
+  box-shadow: 0 3px 10px #102c5427;
 }
-.masthead h1 { font-size: clamp(26px, 5.6vw, 48px); display: flex; align-items: center; gap: .36em; letter-spacing: -.025em; }
+.masthead-brand { display: flex; align-items: center; justify-content: center; gap: clamp(4px, 1.3vw, 16px); }
+.masthead h1 { white-space: nowrap; font-size: clamp(26px, 5.6vw, 48px); display: flex; align-items: center; gap: .36em; letter-spacing: -.025em; }
 .brand-pin, .mini-pin {
   width: .65em; height: .65em; display: inline-grid; place-items: center;
   border-radius: 55% 55% 55% 6%; background: currentColor; transform: rotate(-45deg);
@@ -41,7 +43,30 @@ h1, h2, h3, p { margin: 0; }
 }
 .brand-pin { background: white; }
 .brand-pin::after, .mini-pin::after { content: ""; width: 37%; height: 37%; border-radius: 50%; background: var(--navy); }
-.settings { position: absolute; right: 8px; width: var(--control); height: var(--control); border: 0; background: none; color: var(--navy); font-size: clamp(24px, 5vw, 42px); }
+.share-app {
+  display: inline-flex; align-items: center; justify-content: center; gap: 5px;
+  flex: none; min-width: 44px; min-height: 44px; padding: 0 6px;
+  border: 0; border-radius: 12px; background: none; color: var(--navy);
+  white-space: nowrap; font-size: .75rem; font-weight: 750;
+}
+.share-app:active { background: #112e551a; }
+.share-icon {
+  position: relative; width: 14px; height: 12px; margin-top: 4px;
+  border: 1.5px solid currentColor; border-top: 0; border-radius: 2px;
+}
+.share-icon::before, .share-icon::after { content: ""; position: absolute; left: 50%; }
+.share-icon::before { top: -5px; height: 12px; border-left: 1.5px solid; transform: translateX(-50%); }
+.share-icon::after {
+  top: -5px; width: 6px; height: 6px; border: solid; border-width: 1.5px 0 0 1.5px;
+  transform: translateX(-50%) rotate(45deg);
+}
+.share-status {
+  position: absolute; top: calc(100% + 7px); left: 50%; transform: translateX(-50%);
+  z-index: 1; width: max-content; max-width: 100%; padding: 6px 10px;
+  border-radius: 8px; background: var(--navy); color: white; pointer-events: none;
+}
+.share-status:empty { clip-path: inset(50%); }
+.settings { width: var(--control); height: var(--control); border: 0; background: none; color: var(--navy); font-size: clamp(24px, 5vw, 42px); }
 .settings span { display: inline-block; filter: brightness(0); }
 .live-toggle {
   position: absolute; z-index: 500; left: var(--gutter);
@@ -177,10 +202,11 @@ dialog button { min-height: 44px; padding: 5px 10px; border: 1px solid #c8d6eb; 
 .pin-row .pin-choice { flex: 1; text-align: left; min-width: 0; }
 .pin-label { overflow-wrap: anywhere; }
 #editNameForm { display: grid; gap: 8px; }
-#editNameForm input { width: 100%; min-height: 44px; padding: 8px 10px; border: 1px solid #c8d6eb; border-radius: 10px; font: inherit; color: inherit; }
+#editNameForm input, #shareUrl { width: 100%; min-height: 44px; padding: 8px 10px; border: 1px solid #c8d6eb; border-radius: 10px; font: inherit; color: inherit; }
 #editNameForm button { justify-self: start; }
 .pin-choice small { display: block; font-weight: 400; overflow-wrap: anywhere; }
 .pin-choice[aria-pressed="true"] { border-color: #13834d; background: #e4f6e9; }
+#shareUrl { margin-top: 6px; }
 #settingsDialog p, #settingsDialog h3 { margin-top: 12px; }
 
 @media (max-width: 374px) {
