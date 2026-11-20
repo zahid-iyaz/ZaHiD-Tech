@@ -3,6 +3,8 @@ const GPS_OPTIONS = { enableHighAccuracy: true, timeout: 20000, maximumAge: 0 };
 const $ = id => document.getElementById(id);
 const coordinates = point => [point.lat, point.lng];
 const fromPosition = ({ coords }) => ({ lat: coords.latitude, lng: coords.longitude });
+const isIOS = /iPhone|iPad|iPod/.test(navigator.userAgent) ||
+  (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
 
 let saved = { pins: [], nextNumber: 1 };
 let map, gpsDot, accuracyRing, here, watchId, activeNumber, noticeTimer;
@@ -74,13 +76,19 @@ function nearestPin(pins, point) {
   return nearest;
 }
 
-function navigationUrl(pin, app) {
-  const point = encodeURIComponent(coordinates(pin).join(","));
-  // HTTPS navigation links support app handoff and also work in a browser.
+function navigationUrl(pin, app, native = false) {
+  const point = coordinates(pin).join(",");
+  const encoded = encodeURIComponent(point);
   switch (app) {
-    case "waze": return `https://waze.com/ul?ll=${point}&navigate=yes`;
-    case "apple": return `https://maps.apple.com/?daddr=${point}&dirflg=d`;
-    default: return `https://www.google.com/maps/dir/?api=1&destination=${point}&travelmode=driving&dir_action=navigate`;
+    case "waze":
+      return native ? `waze://?ll=${point}&navigate=yes`
+        : `https://www.waze.com/ul?ll=${encoded}&navigate=yes`;
+    case "apple":
+      return `https://maps.apple.com/?daddr=${encoded}&dirflg=d`;
+    default:
+      // An empty saddr uses the current location inside Google Maps.
+      return native ? `comgooglemaps://?saddr=&daddr=${point}&directionsmode=driving`
+        : `https://www.google.com/maps/dir/?api=1&destination=${encoded}&travelmode=driving`;
   }
 }
 
@@ -125,8 +133,16 @@ function render() {
     : !saved.pins.length ? "Tap the save button" : paused ? "Turn on Live Location" : "Waiting for fresh GPS";
   $("navigateLabel").textContent = destination ? `Navigate to Pin ${number}` : "Navigate to Nearest Pin";
   $("navigate").setAttribute("aria-disabled", String(!destination));
-  if (destination) $("navigate").href = navigationUrl(destination, provider);
-  else $("navigate").removeAttribute("href");
+  const navigate = $("navigate");
+  delete navigate.dataset.browserHref;
+  if (!destination) {
+    navigate.removeAttribute("href");
+    return;
+  }
+
+  const useNative = isIOS && provider !== "apple";
+  navigate.href = navigationUrl(destination, provider, useNative);
+  if (useNative) navigate.dataset.browserHref = navigationUrl(destination, provider);
 }
 
 function fitPins() {
@@ -384,6 +400,17 @@ $("recenter").onclick = () => {
     setLive(true);
   }
 };
+$("navigate").addEventListener("click", event => {
+  const browserHref = event.currentTarget.dataset.browserHref;
+  if (!browserHref) return;
+
+  // Leave the native href to the tap. A separate link avoids a timed redirect
+  // that could interrupt an app launch or fire when the user returns.
+  const fallback = document.createElement("a");
+  fallback.href = browserHref;
+  fallback.textContent = "Open directions in browser";
+  $("message").replaceChildren("If the navigation app didn’t open, ", fallback, ".");
+});
 $("choose").onclick = openSaved;
 $("settings").onclick = () => $("settingsDialog").showModal();
 $("manage").onclick = () => {
