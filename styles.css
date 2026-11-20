@@ -170,6 +170,7 @@ dialog::backdrop { background: #0b244b80; }
 dialog button { min-height: 44px; padding: 5px 10px; border: 1px solid #c8d6eb; border-radius: 10px; background: #edf3fc; font-weight: 700; }
 .dialog-heading button { min-width: 44px; font-size: 24px; }
 .list-actions { flex-wrap: wrap; margin-bottom: 12px; }
+.backup-actions, #backupRestoreStatus:not(:empty) { margin-top: 8px; }
 #resetNumbering { margin-top: 12px; }
 #pinList { padding: 0; margin: 0; list-style: none; }
 .pin-row { border-top: 1px solid #e0e7f0; padding: 7px 0; }
