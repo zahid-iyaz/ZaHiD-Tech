@@ -30,7 +30,7 @@ h1, h2, h3, p { margin: 0; }
 .masthead {
   position: absolute; z-index: 500; inset: var(--map-top) var(--gutter) auto;
   height: var(--header-height); border-radius: clamp(20px, 5vw, 38px);
-  background: linear-gradient(120deg, #173966, var(--navy)); color: white;
+  background: #FFEB00; color: #D50000;
   display: grid; place-items: center; box-shadow: 0 3px 10px #102c5427;
 }
 .masthead h1 { font-size: clamp(26px, 5.6vw, 48px); display: flex; align-items: center; gap: .36em; letter-spacing: -.025em; }
@@ -39,9 +39,10 @@ h1, h2, h3, p { margin: 0; }
   border-radius: 55% 55% 55% 6%; background: currentColor; transform: rotate(-45deg);
   box-shadow: 2px 3px #0875ef;
 }
+.brand-pin { background: white; }
 .brand-pin::after, .mini-pin::after { content: ""; width: 37%; height: 37%; border-radius: 50%; background: var(--navy); }
-.settings { position: absolute; right: 8px; width: var(--control); height: var(--control); border: 0; background: none; color: white; font-size: clamp(24px, 5vw, 42px); }
-.settings span { display: inline-block; filter: brightness(0) invert(1); }
+.settings { position: absolute; right: 8px; width: var(--control); height: var(--control); border: 0; background: none; color: var(--navy); font-size: clamp(24px, 5vw, 42px); }
+.settings span { display: inline-block; filter: brightness(0); }
 .live-toggle {
   position: absolute; z-index: 500; left: var(--gutter);
   top: calc(var(--map-top) + var(--header-height) + 7px);
