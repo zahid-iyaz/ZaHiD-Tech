@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#112e55">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="ZaHiD Tech">
+  <title>ZaHiD Tech</title>
+  <link rel="manifest" href="./manifest.webmanifest">
+  <link rel="apple-touch-icon" href="./icon-192.png">
+  <link rel="stylesheet" href="./vendor/leaflet/leaflet.css">
+  <link rel="stylesheet" href="./styles.css">
+  <script defer src="./vendor/leaflet/leaflet.js"></script>
+  <script defer src="./app.js"></script>
+</head>
+<body>
+  <main class="app">
+    <section class="map-wrap" aria-label="Saved locations map">
+      <div id="map" aria-label="Interactive map"></div>
+      <header class="masthead">
+        <h1><span class="brand-pin" aria-hidden="true"></span>ZaHiD Tech</h1>
+        <button id="settings" class="settings" aria-label="Settings" aria-haspopup="dialog"><span aria-hidden="true">⚙︎</span></button>
+      </header>
+      <button id="liveToggle" class="live-toggle" role="switch" aria-label="Live Location" aria-checked="true">
+        <span class="status-dot" aria-hidden="true"></span>
+        <span><strong id="liveLabel">Live Location: ON</strong><small id="liveDetail">Acquiring GPS…</small></span>
+        <span class="switch" aria-hidden="true"></span>
+      </button>
+      <div class="map-tools" role="group" aria-label="Map controls">
+        <button id="saveBtn" class="map-button save" aria-label="Save my location" title="Save my location"><span class="direction" aria-hidden="true"></span><span class="save-plus" aria-hidden="true">+</span></button>
+        <div class="zoom">
+          <button id="zoomIn" class="map-button" aria-label="Zoom in">+</button>
+          <button id="zoomOut" class="map-button" aria-label="Zoom out">−</button>
+        </div>
+        <button id="recenter" class="map-button" aria-label="Show my live location" title="Show my live location"><span class="target" aria-hidden="true"></span></button>
+      </div>
+      <div id="notice" class="notice" role="status" aria-atomic="true"></div>
+      <div id="mapStatus" class="map-note" hidden></div>
+    </section>
+
+    <div class="panel">
+      <section class="nearest-card" aria-labelledby="cardTitle">
+        <div class="card-heading">
+          <span class="target" aria-hidden="true"></span>
+          <h2 id="cardTitle">Nearest Saved Location</h2>
+          <span id="liveBadge" class="live-badge" hidden>LIVE</span>
+        </div>
+        <div class="reading">
+          <strong id="pinName">No pins yet</strong>
+          <div class="distance"><strong id="distance">Save your location</strong><small id="metric">Tap the save button on the map</small></div>
+        </div>
+      </section>
+      <section class="navigation" aria-labelledby="navTitle">
+        <h2 id="navTitle">Choose Navigation App</h2>
+        <div id="providers" class="providers" role="group" aria-label="Navigation app">
+          <button data-provider="google" aria-pressed="true"><span aria-hidden="true" class="app-icon google"></span>Google Maps<span class="external" aria-hidden="true"></span></button>
+          <button data-provider="waze" aria-pressed="false"><span aria-hidden="true" class="app-icon waze"><span></span></span>Waze<span class="external" aria-hidden="true"></span></button>
+          <button data-provider="apple" aria-pressed="false"><span aria-hidden="true" class="app-icon apple"><span class="direction"></span></span>Apple Maps<span class="external" aria-hidden="true"></span></button>
+        </div>
+      </section>
+      <div class="actions">
+        <button id="choose" aria-haspopup="dialog"><span class="mini-pin" aria-hidden="true"></span>Choose Another Pin<span class="chevron" aria-hidden="true"></span></button>
+        <a id="navigate" class="navigate" target="_blank" rel="noopener noreferrer" aria-disabled="true"><span class="direction" aria-hidden="true"></span><span id="navigateLabel">Navigate</span></a>
+      </div>
+      <p id="message" class="message" role="status"></p>
+    </div>
+  </main>
+
+  <dialog id="savedDialog" aria-labelledby="savedTitle">
+    <div class="dialog-heading"><h2 id="savedTitle">Saved pins</h2><button data-close="savedDialog" aria-label="Close saved pins">×</button></div>
+    <div class="list-actions"><button id="auto">Use nearest automatically</button><button id="fit">Show all on map</button></div>
+    <p id="empty">Tap the save button on the map to save your first pin.</p>
+    <ol id="pinList"></ol>
+  </dialog>
+
+  <dialog id="settingsDialog" aria-labelledby="settingsTitle">
+    <div class="dialog-heading"><h2 id="settingsTitle">Settings</h2><button data-close="settingsDialog" aria-label="Close settings">×</button></div>
+    <button id="manage" class="manage">Saved pins</button>
+    <h3>Install on iPhone</h3>
+    <p>Open ZaHiD Tech in Safari, tap Share, then Add to Home Screen.</p>
+    <p>Pins are stored on this device. OpenStreetMap tiles require an internet connection.</p>
+  </dialog>
+</body>
+</html>
