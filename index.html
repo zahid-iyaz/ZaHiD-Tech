@@ -76,6 +76,17 @@
     <ol id="pinList"></ol>
   </dialog>
 
+  <dialog id="editNameDialog" aria-labelledby="editNameTitle">
+    <div class="dialog-heading"><h2 id="editNameTitle">Edit name</h2><button data-close="editNameDialog" aria-label="Close name editor">×</button></div>
+    <form id="editNameForm">
+      <label for="pinNameInput">Custom name</label>
+      <input id="pinNameInput" type="text" autofocus aria-describedby="editNameHint">
+      <small id="editNameHint">Leave blank to use the original pin number.</small>
+      <p id="editNameError" class="message" role="status"></p>
+      <button type="submit">Save name</button>
+    </form>
+  </dialog>
+
   <dialog id="settingsDialog" aria-labelledby="settingsTitle">
     <div class="dialog-heading"><h2 id="settingsTitle">Settings</h2><button data-close="settingsDialog" aria-label="Close settings">×</button></div>
     <button id="manage" class="manage">Saved pins</button>
