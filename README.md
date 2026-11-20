@@ -15,6 +15,17 @@ back to saved places. It embeds Leaflet with an OpenStreetMap basemap served by 
 Pins are stored in this browser under the localStorage key
 `zahid-tech-pins-v1`. Clearing website data removes saved pins.
 
+## Back up and restore saved locations
+
+Open **Choose Another Pin** and tap **Backup Saved Locations**. In Safari,
+choose **Save to Files** from the share sheet if available, then select an
+On My iPhone or iCloud Drive folder. Browsers without file sharing download
+the JSON file. Each backup has a unique date-and-time filename.
+
+To import a backup, tap **Restore Saved Locations**, select the JSON file,
+and confirm the replacement. Restoring replaces the saved pins and numbering
+settings on this device.
+
 ## Run locally
 
 Serve the project with `python3 -m http.server 8000` and open

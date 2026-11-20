@@ -1,4 +1,5 @@
 const DB_KEY = "zahid-tech-pins-v1";
+const BACKUP_VERSION = 1;
 const GPS_OPTIONS = { enableHighAccuracy: true, timeout: 20000, maximumAge: 0 };
 const SAVE_MAX_AGE = 3000;
 const SAVE_MAX_ACCURACY = 30;
@@ -23,6 +24,11 @@ function message(text) {
   $("message").textContent = text;
 }
 
+function isValidPin({ lat, lng, number }) {
+  return Number.isFinite(lat) && Math.abs(lat) <= 90 &&
+    Number.isFinite(lng) && Math.abs(lng) <= 180 && Number.isSafeInteger(number) && number > 0;
+}
+
 function readSaved() {
   const value = JSON.parse(localStorage.getItem(DB_KEY) ?? "null");
   if (value === null) return { pins: [], nextNumber: 1 };
@@ -34,8 +40,7 @@ function readSaved() {
       if (typeof record?.name === "string" && record.name.trim()) pin.name = record.name.trim();
       return pin;
     })
-    .filter(({ lat, lng, number }) => Number.isFinite(lat) && Math.abs(lat) <= 90 &&
-      Number.isFinite(lng) && Math.abs(lng) <= 180 && Number.isSafeInteger(number) && number > 0);
+    .filter(isValidPin);
   if (value.numberingReset === true) {
     const nextNumber = Number.isSafeInteger(value.nextNumber) && value.nextNumber > 0 ? value.nextNumber : 1;
     return { pins, nextNumber, numberingReset: true };
@@ -56,10 +61,10 @@ function refreshSaved() {
   }
 }
 
-function writeSaved(next) {
+function writeSaved(next, resetSelection = false) {
   localStorage.setItem(DB_KEY, JSON.stringify(next));
   saved = next;
-  if (!saved.pins.some(pin => pin.number === manualNumber)) manualNumber = null;
+  if (resetSelection || !saved.pins.some(pin => pin.number === manualNumber)) manualNumber = null;
   syncMarkers();
   render();
   if ($("savedDialog").open) renderList();
@@ -478,8 +483,109 @@ $("resetNumbering").onclick = () => {
   }
 };
 
+function parseBackup(text) {
+  const backup = JSON.parse(text);
+  if (backup?.format !== "zahid-tech-saved-locations" || backup.version !== BACKUP_VERSION) {
+    throw new Error("Unsupported backup format.");
+  }
+  const { pins, nextNumber, numberingReset } = backup;
+  if (!Array.isArray(pins) || !Number.isSafeInteger(nextNumber) || nextNumber < 1 ||
+      (numberingReset !== undefined && numberingReset !== true)) {
+    throw new Error("Invalid backup settings.");
+  }
+
+  const numbers = new Set();
+  const restored = pins.map(pin => {
+    if (!pin || !isValidPin(pin) || numbers.has(pin.number) ||
+        (!numberingReset && pin.number >= nextNumber) ||
+        (pin.name !== undefined && (typeof pin.name !== "string" || !pin.name.trim()))) {
+      throw new Error("Invalid backup pin.");
+    }
+
+    const { lat, lng, number, name } = pin;
+    numbers.add(number);
+    return name === undefined ? { lat, lng, number } : { lat, lng, number, name };
+  });
+  return numberingReset ? { pins: restored, nextNumber, numberingReset } : { pins: restored, nextNumber };
+}
+
+$("backupLocations").onclick = async () => {
+  const status = $("backupRestoreStatus");
+  try {
+    const backup = { format: "zahid-tech-saved-locations", version: BACKUP_VERSION, ...readSaved() };
+    const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
+    const filename = `ZaHiD-Tech-backup-${timestamp}-${crypto.randomUUID()}.json`;
+    const file = new File([JSON.stringify(backup, null, 2)], filename, { type: "application/json" });
+
+    if (navigator.share && navigator.canShare?.({ files: [file] })) {
+      try {
+        await navigator.share({ files: [file] });
+        status.textContent = "Backup shared.";
+        return;
+      } catch (error) {
+        if (error.name === "AbortError") {
+          status.textContent = "Backup cancelled.";
+          return;
+        }
+      }
+    }
+
+    const url = URL.createObjectURL(file);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = filename;
+    document.body.append(link);
+    try {
+      link.click();
+      status.textContent = "Backup download started.";
+    } finally {
+      link.remove();
+      // Give Safari time to read the file before releasing its URL.
+      setTimeout(() => URL.revokeObjectURL(url), 60000);
+    }
+  } catch {
+    status.textContent = "Could not create a backup.";
+  }
+};
+
+$("restoreLocations").onclick = () => $("restoreFile").click();
+$("restoreFile").onchange = async event => {
+  const input = event.currentTarget;
+  const file = input.files[0];
+  input.value = "";
+  if (!file) return;
+
+  const button = $("restoreLocations");
+  const status = $("backupRestoreStatus");
+  button.disabled = true;
+  status.textContent = "Checking backup…";
+  try {
+    let restored;
+    try {
+      restored = parseBackup(await file.text());
+    } catch {
+      status.textContent = "Could not read this ZaHiD Tech backup. Choose a valid backup JSON file.";
+      return;
+    }
+
+    const count = restored.pins.length;
+    if (!confirm(`Restore ${count} saved ${count === 1 ? "location" : "locations"}? This will replace all currently saved pins and numbering settings.`)) {
+      status.textContent = "Restore cancelled.";
+      return;
+    }
+
+    writeSaved(restored, true);
+    status.textContent = `Restored ${count} saved ${count === 1 ? "location" : "locations"}.`;
+  } catch {
+    status.textContent = "Could not restore the backup. Check device storage and try again.";
+  } finally {
+    button.disabled = false;
+  }
+};
+
 function openSaved() {
   $("resetNumberingStatus").textContent = "";
+  $("backupRestoreStatus").textContent = "";
   renderList();
   $("savedDialog").showModal();
 }

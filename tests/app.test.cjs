@@ -2,6 +2,8 @@ const assert = require("node:assert/strict");
 const { readFileSync } = require("node:fs");
 const { test } = require("node:test");
 const vm = require("node:vm");
+const { File } = require("node:buffer");
+const { randomUUID } = require("node:crypto");
 
 const app = readFileSync(require("node:path").join(__dirname, "../app.js"), "utf8");
 const pins = [
@@ -26,7 +28,7 @@ function element() {
   };
 }
 
-function openApp(clipboard, { storage = { data: { pins, nextNumber: 10 } }, confirmReset = () => true } = {}) {
+function openApp(clipboard, { storage = { data: { pins, nextNumber: 10 } }, confirmReset = () => true, share } = {}) {
   const elements = new Map();
   function get(id) {
     if (!elements.has(id)) elements.set(id, element());
@@ -50,6 +52,8 @@ function openApp(clipboard, { storage = { data: { pins, nextNumber: 10 } }, conf
     navigator: {
       userAgent: "iPhone",
       clipboard,
+      share,
+      canShare: () => Boolean(share),
       geolocation: { watchPosition(onFix) { onPosition = onFix; return 1; } }
     },
     localStorage: {
@@ -63,6 +67,8 @@ function openApp(clipboard, { storage = { data: { pins, nextNumber: 10 } }, conf
       }
     },
     confirm: confirmReset,
+    File,
+    crypto: { randomUUID },
     clearTimeout() {},
     setTimeout() {}
   });
@@ -171,4 +177,88 @@ test("reset starts at Pin 1 when that number is available", async () => {
   app.moveTo(pins[0]);
   await app.get("saveBtn").click();
   assert.deepEqual(storage.data.pins.map(pin => pin.number), [3, 1]);
+});
+
+const backupData = {
+  format: "zahid-tech-saved-locations",
+  version: 1,
+  pins: numberedPins,
+  nextNumber: 2,
+  numberingReset: true
+};
+
+async function importBackup(app, text) {
+  const input = app.get("restoreFile");
+  input.files = [new File([text], "backup.json")];
+  await input.onchange({ currentTarget: input });
+}
+
+test("each backup creates a unique dated JSON file and leaves storage unchanged", async () => {
+  const original = { pins: numberedPins, nextNumber: 2, numberingReset: true };
+  const storage = { data: original };
+  const files = [];
+  const app = openApp(undefined, { storage, share: async ({ files: [file] }) => files.push(file) });
+
+  await app.get("backupLocations").onclick();
+  await app.get("backupLocations").onclick();
+
+  assert.equal(files.length, 2);
+  assert.notEqual(files[0].name, files[1].name);
+  for (const file of files) {
+    assert.match(file.name, /^ZaHiD-Tech-backup-\d{4}-\d{2}-\d{2}T.*\.json$/);
+    assert.deepEqual(JSON.parse(await file.text()), backupData);
+  }
+  assert.equal(storage.data, original);
+});
+
+test("restore confirms replacement, persists names and numbering, and can save after reopening", async () => {
+  const storage = { data: { pins, nextNumber: 10 } };
+  const app = openApp(undefined, {
+    storage,
+    confirmReset(text) {
+      assert.match(text, /replace all currently saved pins and numbering settings/);
+      return true;
+    }
+  });
+  await importBackup(app, JSON.stringify(backupData));
+  assert.deepEqual(storage.data, { pins: numberedPins, nextNumber: 2, numberingReset: true });
+
+  const reopened = openApp(undefined, { storage });
+  reopened.moveTo(pins[0]);
+  await reopened.get("saveBtn").click();
+  assert.equal(storage.data.pins.at(-1).number, 2);
+  assert.deepEqual(storage.data.pins.slice(0, 2), numberedPins);
+});
+
+test("invalid backups never prompt or write any saved locations", async () => {
+  const original = { pins, nextNumber: 10 };
+  const storage = { data: original };
+  let confirmations = 0;
+  const app = openApp(undefined, { storage, confirmReset: () => ++confirmations });
+
+  for (const invalid of [
+    "{",
+    JSON.stringify({ ...backupData, version: 2 }),
+    JSON.stringify({ ...backupData, pins: [numberedPins[0], numberedPins[0]] }),
+    JSON.stringify({ ...backupData, pins: [{ ...numberedPins[0], lat: 91 }] }),
+    JSON.stringify({ ...backupData, pins: [{ ...numberedPins[0], name: 42 }] }),
+    JSON.stringify({ ...backupData, nextNumber: 0 }),
+    JSON.stringify({ ...backupData, numberingReset: undefined })
+  ]) {
+    await importBackup(app, invalid);
+    assert.match(app.get("backupRestoreStatus").textContent, /Could not read/);
+  }
+  assert.equal(confirmations, 0);
+  assert.equal(storage.data, original);
+});
+
+test("cancelling a valid restore leaves saved locations and numbering intact", async () => {
+  const original = { pins, nextNumber: 10 };
+  const storage = { data: original };
+  const app = openApp(undefined, { storage, confirmReset: () => false });
+
+  await importBackup(app, JSON.stringify(backupData));
+
+  assert.equal(app.get("backupRestoreStatus").textContent, "Restore cancelled.");
+  assert.equal(storage.data, original);
 });

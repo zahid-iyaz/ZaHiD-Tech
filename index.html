@@ -76,6 +76,12 @@
     <ol id="pinList"></ol>
     <button id="resetNumbering" type="button">Reset Pin Numbering</button>
     <p id="resetNumberingStatus" class="message" role="status"></p>
+    <div class="list-actions backup-actions">
+      <button id="backupLocations" type="button">Backup Saved Locations</button>
+      <button id="restoreLocations" type="button">Restore Saved Locations</button>
+      <input id="restoreFile" type="file" accept=".json,application/json" hidden>
+    </div>
+    <p id="backupRestoreStatus" class="message" role="status"></p>
   </dialog>
 
   <dialog id="editNameDialog" aria-labelledby="editNameTitle">
