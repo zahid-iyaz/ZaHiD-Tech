@@ -3,10 +3,11 @@
 ZaHiD Tech is a mobile-first PWA for saving GPS coordinates and navigating
 back to saved places. It embeds Leaflet with an OpenStreetMap basemap served by FOSSGIS.
 
-- Tap the save button at the top right of the map to save your location.
+- Tap **+ SAVE LOCATION** at the bottom of the map to save your location.
   Pins are numbered automatically and keep their numbers after deletion.
-- Live Location starts on. A red dot shows your position and the nearest
-  pin updates as you move. Distances are straight-line estimates.
+- Live Location starts on and requests a fresh fix whenever the app returns to
+  the foreground. A red dot shows your position and the nearest pin updates
+  as you move. Distances are straight-line estimates.
 - Choose Another Pin opens the saved-locations sheet. Select a pin to
   switch to manual mode, or choose Use nearest automatically to return.
 - Select Google Maps, Waze, or Apple Maps, then tap Navigate to open directions.

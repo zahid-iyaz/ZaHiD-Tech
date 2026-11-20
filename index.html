@@ -25,17 +25,17 @@
       </header>
       <button id="liveToggle" class="live-toggle" role="switch" aria-label="Live Location" aria-checked="true">
         <span class="status-dot" aria-hidden="true"></span>
-        <span><strong id="liveLabel">Live Location: ON</strong><small id="liveDetail">Acquiring GPS…</small></span>
+        <span><strong id="liveLabel">Live Location: ON</strong><small id="liveDetail">Locating…</small></span>
         <span class="switch" aria-hidden="true"></span>
       </button>
       <div class="map-tools" role="group" aria-label="Map controls">
-        <button id="saveBtn" class="map-button save" aria-label="Save my location" title="Save my location"><span class="direction" aria-hidden="true"></span><span class="save-plus" aria-hidden="true">+</span></button>
         <div class="zoom">
           <button id="zoomIn" class="map-button" aria-label="Zoom in">+</button>
           <button id="zoomOut" class="map-button" aria-label="Zoom out">−</button>
         </div>
         <button id="recenter" class="map-button" aria-label="Show my live location" title="Show my live location"><span class="target" aria-hidden="true"></span></button>
       </div>
+      <button id="saveBtn" class="save" type="button">+ SAVE LOCATION</button>
       <div id="notice" class="notice" role="status" aria-atomic="true"></div>
       <div id="mapStatus" class="map-note" hidden></div>
     </section>
@@ -62,7 +62,7 @@
       </section>
       <div class="actions">
         <button id="choose" aria-haspopup="dialog"><span class="mini-pin" aria-hidden="true"></span>Choose Another Pin<span class="chevron" aria-hidden="true"></span></button>
-        <a id="navigate" class="navigate" target="_blank" rel="noopener noreferrer" aria-disabled="true"><span class="direction" aria-hidden="true"></span><span id="navigateLabel">Navigate</span></a>
+        <a id="navigate" class="navigate" aria-disabled="true"><span class="direction" aria-hidden="true"></span><span id="navigateLabel">Navigate</span></a>
       </div>
       <p id="message" class="message" role="status"></p>
     </div>
