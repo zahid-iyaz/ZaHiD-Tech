@@ -173,6 +173,10 @@ dialog button { min-height: 44px; padding: 5px 10px; border: 1px solid #c8d6eb; 
 #pinList { padding: 0; margin: 0; list-style: none; }
 .pin-row { border-top: 1px solid #e0e7f0; padding: 7px 0; }
 .pin-row .pin-choice { flex: 1; text-align: left; min-width: 0; }
+.pin-label { overflow-wrap: anywhere; }
+#editNameForm { display: grid; gap: 8px; }
+#editNameForm input { width: 100%; min-height: 44px; padding: 8px 10px; border: 1px solid #c8d6eb; border-radius: 10px; font: inherit; color: inherit; }
+#editNameForm button { justify-self: start; }
 .pin-choice small { display: block; font-weight: 400; overflow-wrap: anywhere; }
 .pin-choice[aria-pressed="true"] { border-color: #13834d; background: #e4f6e9; }
 #settingsDialog p, #settingsDialog h3 { margin-top: 12px; }

@@ -26,7 +26,11 @@ function readSaved() {
   if (!Array.isArray(value.pins)) throw new Error("Invalid pin data.");
 
   const pins = value.pins
-    .map(record => ({ lat: record?.lat, lng: record?.lng, number: record?.number }))
+    .map(record => {
+      const pin = { lat: record?.lat, lng: record?.lng, number: record?.number };
+      if (typeof record?.name === "string" && record.name.trim()) pin.name = record.name.trim();
+      return pin;
+    })
     .filter(({ lat, lng, number }) => Number.isFinite(lat) && Math.abs(lat) <= 90 &&
       Number.isFinite(lng) && Math.abs(lng) <= 180 && Number.isSafeInteger(number) && number > 0);
   const minimumNext = pins.reduce((next, pin) => Math.max(next, pin.number + 1), 1);
@@ -341,6 +345,40 @@ $("saveBtn").addEventListener("click", async () => {
   }
 });
 
+function editPinName(pin) {
+  const dialog = $("editNameDialog");
+  const input = $("pinNameInput");
+  const error = $("editNameError");
+  const label = `Pin ${pin.number}`;
+  $("editNameTitle").textContent = `Edit name for ${label}`;
+  input.value = pin.name ?? "";
+  input.placeholder = label;
+  error.textContent = "";
+
+  $("editNameForm").onsubmit = event => {
+    event.preventDefault();
+    try {
+      const latest = readSaved();
+      const current = latest.pins.find(item => item.number === pin.number);
+      if (!current) {
+        error.textContent = `${label} was deleted.`;
+        return;
+      }
+
+      const name = input.value.trim();
+      if (name) current.name = name;
+      else delete current.name;
+
+      writeSaved(latest);
+      dialog.close();
+      $("savedDialog").querySelector(`[data-edit-pin="${pin.number}"]`)?.focus();
+    } catch {
+      error.textContent = "Could not save the name. Check device storage and try again.";
+    }
+  };
+  dialog.showModal();
+}
+
 function renderList() {
   $("pinList").replaceChildren();
   $("empty").hidden = saved.pins.length > 0;
@@ -355,7 +393,16 @@ function renderList() {
     choose.setAttribute("aria-pressed", String(pin.number === activeNumber));
     const details = document.createElement("small");
     details.textContent = coordinates(pin).map(value => value.toFixed(6)).join(", ");
-    choose.append(label, details);
+    const name = document.createElement("span");
+    name.className = "pin-label";
+    name.textContent = pin.name ?? label;
+    choose.append(name);
+    if (pin.name) {
+      const number = document.createElement("small");
+      number.textContent = label;
+      choose.append(number);
+    }
+    choose.append(details);
     choose.onclick = () => {
       $("savedDialog").close();
       selectPin(pin.number);
@@ -375,7 +422,12 @@ function renderList() {
         $("savedDialog").close();
       }
     };
-    row.append(choose, remove);
+    const edit = document.createElement("button");
+    edit.textContent = "Edit Name";
+    edit.dataset.editPin = pin.number;
+    edit.setAttribute("aria-label", `Edit Name for ${label}`);
+    edit.onclick = () => editPinName(pin);
+    row.append(choose, edit, remove);
     $("pinList").append(row);
   }
 }
