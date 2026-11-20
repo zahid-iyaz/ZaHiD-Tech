@@ -26,3 +26,5 @@ GitHub Pages can serve the project from its repository root at
 choose Add to Home Screen. Launch the app and grant location access.
 The service worker caches the app shell and Leaflet. OpenStreetMap tiles
 and external navigation services require connectivity.
+
+Run the navigation regression tests with `node --test tests/navigation.test.cjs`.

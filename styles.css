@@ -157,7 +157,11 @@ h2 { font-size: clamp(16px, 4vw, 34px); letter-spacing: -.025em; }
 .mini-pin::after { background: #e9edf9; }
 .actions .navigate { background: #065ee8; color: white; border-color: transparent; text-decoration: none; }
 .direction { display: inline-block; width: 1.2em; height: 1.2em; background: currentColor; clip-path: polygon(0 43%,100% 0,61% 100%,44% 57%); flex: none; }
-.message { color: #334563; font-size: .875rem; }
+#copyDestination {
+  justify-self: center; min-height: 44px; padding: 4px 12px; border: 0;
+  background: transparent; color: var(--navy); text-decoration: underline;
+}
+.message { -webkit-user-select: text; user-select: text; color: #334563; font-size: .875rem; }
 .message:empty { display: none; }
 dialog { border: 0; border-radius: 22px; color: inherit; width: min(calc(100% - 24px), 540px); max-height: 80vh; padding: 18px; }
 dialog::backdrop { background: #0b244b80; }
