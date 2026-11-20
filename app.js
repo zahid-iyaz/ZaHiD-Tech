@@ -36,6 +36,10 @@ function readSaved() {
     })
     .filter(({ lat, lng, number }) => Number.isFinite(lat) && Math.abs(lat) <= 90 &&
       Number.isFinite(lng) && Math.abs(lng) <= 180 && Number.isSafeInteger(number) && number > 0);
+  if (value.numberingReset === true) {
+    const nextNumber = Number.isSafeInteger(value.nextNumber) && value.nextNumber > 0 ? value.nextNumber : 1;
+    return { pins, nextNumber, numberingReset: true };
+  }
   const minimumNext = pins.reduce((next, pin) => Math.max(next, pin.number + 1), 1);
   return { pins, nextNumber: Math.max(minimumNext, Number.isSafeInteger(value.nextNumber) ? value.nextNumber : 1) };
 }
@@ -356,9 +360,14 @@ $("saveBtn").addEventListener("click", async () => {
       return;
     }
     try {
-      const { pins, nextNumber } = readSaved();
-      const pin = { ...fromPosition(position), number: nextNumber };
-      writeSaved({ pins: [...pins, pin], nextNumber: nextNumber + 1 });
+      const latest = readSaved();
+      const usedNumbers = new Set(latest.pins.map(pin => pin.number));
+      let number = latest.nextNumber;
+      while (usedNumbers.has(number)) number++;
+      if (!Number.isSafeInteger(number)) throw new Error("No pin numbers available");
+
+      const pin = { ...fromPosition(position), number };
+      writeSaved({ ...latest, pins: [...latest.pins, pin], nextNumber: number + 1 });
       if (map) map.setView(coordinates(pin), 16);
       message(`Saved as Pin ${pin.number}.`);
     } catch {
@@ -457,7 +466,20 @@ function renderList() {
   }
 }
 
+$("resetNumbering").onclick = () => {
+  if (!confirm("Reset pin numbering from Pin 1? Existing pins will not be deleted or renumbered. New pins will skip numbers already in use.")) return;
+
+  const status = $("resetNumberingStatus");
+  try {
+    writeSaved({ ...readSaved(), nextNumber: 1, numberingReset: true });
+    status.textContent = "Pin numbering reset. New pins will skip numbers in use.";
+  } catch {
+    status.textContent = "Could not reset numbering. Check device storage and try again.";
+  }
+};
+
 function openSaved() {
+  $("resetNumberingStatus").textContent = "";
   renderList();
   $("savedDialog").showModal();
 }
