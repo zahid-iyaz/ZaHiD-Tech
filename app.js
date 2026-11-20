@@ -7,7 +7,9 @@ const fromPosition = ({ coords }) => ({ lat: coords.latitude, lng: coords.longit
 let saved = { pins: [], nextNumber: 1 };
 let map, gpsDot, accuracyRing, here, watchId, activeNumber, noticeTimer;
 let live = true;
-let centeredOnFirstFix = false;
+let recenterOnFix = true;
+let pageHidden = false;
+let foregroundVisit = 0;
 let watchGeneration = 0;
 let manualNumber = null;
 let announcedNearest;
@@ -74,8 +76,9 @@ function nearestPin(pins, point) {
 
 function navigationUrl(pin, app) {
   const point = encodeURIComponent(coordinates(pin).join(","));
+  // HTTPS navigation links support app handoff and also work in a browser.
   switch (app) {
-    case "waze": return `https://www.waze.com/ul?ll=${point}&navigate=yes`;
+    case "waze": return `https://waze.com/ul?ll=${point}&navigate=yes`;
     case "apple": return `https://maps.apple.com/?daddr=${point}&dirflg=d`;
     default: return `https://www.google.com/maps/dir/?api=1&destination=${point}&travelmode=driving&dir_action=navigate`;
   }
@@ -110,16 +113,16 @@ function render() {
   }
 
   $("cardTitle").textContent = manual ? "Selected Saved Location" : "Nearest Saved Location";
-  $("liveBadge").hidden = !saved.pins.length && !here;
-  $("liveBadge").textContent = here ? "LIVE" : live ? "WAITING" : "PAUSED";
+  const paused = !live || !isForeground();
+  $("liveBadge").textContent = here ? "LIVE" : paused ? "PAUSED" : "WAITING";
   $("liveBadge").classList.toggle("is-paused", !here);
   $("pinName").classList.toggle("is-empty", !destination);
   $("pinName").textContent = destination ? `Pin ${number}` : saved.pins.length ? "Pins saved" : "No pins yet";
   const meters = destination && here ? distance(here, destination) : null;
   $("distance").textContent = meters !== null ? `${(meters / 1609.344).toFixed(1)} miles away`
-    : !saved.pins.length ? "Save your location" : destination ? "Distance unavailable" : live ? "Waiting for GPS" : "Location paused";
+    : !saved.pins.length ? "Save your location" : paused ? "Location paused" : "Locating…";
   $("metric").textContent = meters !== null ? `≈ ${(meters / 1000).toFixed(1)} km`
-    : !saved.pins.length ? "Tap the save button" : live ? "Live Location is on" : "Turn on Live Location";
+    : !saved.pins.length ? "Tap the save button" : paused ? "Turn on Live Location" : "Waiting for fresh GPS";
   $("navigateLabel").textContent = destination ? `Navigate to Pin ${number}` : "Navigate to Nearest Pin";
   $("navigate").setAttribute("aria-disabled", String(!destination));
   if (destination) $("navigate").href = navigationUrl(destination, provider);
@@ -128,7 +131,7 @@ function render() {
 
 function fitPins() {
   if (!map || !saved.pins.length) return;
-  map.fitBounds(saved.pins.map(coordinates), { paddingTopLeft: [32, 145], paddingBottomRight: [65, 40], maxZoom: 16 });
+  map.fitBounds(saved.pins.map(coordinates), { paddingTopLeft: [32, 145], paddingBottomRight: [65, 83], maxZoom: 16 });
 }
 
 function initMap() {
@@ -187,7 +190,6 @@ function selectPin(number) {
 function updateGPS(position) {
   here = fromPosition(position);
   $("liveDetail").textContent = "Red dot follows you";
-  if ($("message").textContent === "Finding your location…") message("");
   $("liveLabel").textContent = "Live Location: ON";
   if (map) {
     const point = coordinates(here);
@@ -199,11 +201,9 @@ function updateGPS(position) {
       accuracyRing.setLatLng(point).setRadius(accuracy);
       gpsDot.setLatLng(point);
     }
-    if (!centeredOnFirstFix) {
-      map.setView(point, 16);
-      centeredOnFirstFix = true;
-    }
+    if (recenterOnFix) map.setView(point, 16, { animate: false });
   }
+  recenterOnFix = false;
   render();
 }
 
@@ -221,41 +221,88 @@ function gpsError(error) {
   return "GPS unavailable";
 }
 
-function setLive(enabled) {
-  const generation = ++watchGeneration;
+function isForeground() {
+  return !pageHidden && document.visibilityState === "visible";
+}
+
+function stopTracking() {
+  watchGeneration++;
   if (watchId !== undefined) navigator.geolocation.clearWatch(watchId);
   watchId = undefined;
-  live = enabled;
   clearGPS();
-  $("liveToggle").setAttribute("aria-checked", String(live));
-  $("liveLabel").textContent = `Live Location: ${live ? "ON" : "OFF"}`;
-  $("liveDetail").textContent = live ? "Acquiring GPS…" : "GPS tracking paused";
+}
+
+function startTracking() {
+  if (!live || !isForeground() || watchId !== undefined) return;
+  const generation = ++watchGeneration;
+  let lastTimestamp = Date.now();
+  $("liveDetail").textContent = "Locating…";
   render();
-  if (!live) return;
+
   const failed = error => {
-    if (generation !== watchGeneration) return;
+    if (generation !== watchGeneration || !isForeground()) return;
     clearGPS();
-    if (error?.code === 1 || !navigator.geolocation) {
-      setLive(false);
-    }
+    if (error?.code === 1 || !navigator.geolocation) setLive(false);
     $("liveDetail").textContent = gpsError(error);
-    if ($("message").textContent === "Finding your location…") message(gpsError(error));
     render();
   };
+
   try {
     watchId = navigator.geolocation.watchPosition(position => {
-      if (generation === watchGeneration) updateGPS(position);
+      if (generation !== watchGeneration || !isForeground() ||
+          !Number.isFinite(position.timestamp) || position.timestamp < lastTimestamp) return;
+      lastTimestamp = position.timestamp;
+      updateGPS(position);
     }, failed, GPS_OPTIONS);
   } catch (error) {
     failed(error);
   }
 }
 
+function setLive(enabled) {
+  live = enabled;
+  $("liveToggle").setAttribute("aria-checked", String(live));
+  $("liveLabel").textContent = `Live Location: ${live ? "ON" : "OFF"}`;
+  if (live) startTracking();
+  else {
+    stopTracking();
+    $("liveDetail").textContent = "GPS tracking paused";
+  }
+  render();
+}
+
+function suspendTracking() {
+  foregroundVisit++;
+  recenterOnFix = true;
+  stopTracking();
+  if (live) $("liveDetail").textContent = "GPS tracking paused";
+  if ($("saveBtn").disabled) message("");
+  render();
+}
+
+document.addEventListener("visibilitychange", () => {
+  if (isForeground()) startTracking();
+  else suspendTracking();
+});
+window.addEventListener("pagehide", () => {
+  pageHidden = true;
+  suspendTracking();
+});
+window.addEventListener("pageshow", event => {
+  pageHidden = false;
+  if (event.persisted) {
+    manualNumber = null;
+    refreshSaved();
+  }
+  startTracking();
+});
+
 function currentPosition() {
   return new Promise((resolve, reject) => navigator.geolocation.getCurrentPosition(resolve, reject, GPS_OPTIONS));
 }
 
 $("saveBtn").addEventListener("click", async () => {
+  const visit = foregroundVisit;
   $("saveBtn").disabled = true;
   message("Getting your GPS location…");
   try {
@@ -263,14 +310,16 @@ $("saveBtn").addEventListener("click", async () => {
     try {
       position = await currentPosition();
     } catch (error) {
-      message(`${gpsError(error)}. Check location permissions or try again.`);
+      if (visit === foregroundVisit && isForeground()) {
+        message(`${gpsError(error)}. Check location permissions or try again.`);
+      }
       return;
     }
+    if (visit !== foregroundVisit || !isForeground()) return;
     try {
       const { pins, nextNumber } = readSaved();
       const pin = { ...fromPosition(position), number: nextNumber };
       writeSaved({ pins: [...pins, pin], nextNumber: nextNumber + 1 });
-      if (live) updateGPS(position);
       if (map) map.setView(coordinates(pin), 16);
       message(`Saved as Pin ${pin.number}.`);
     } catch {
@@ -331,8 +380,8 @@ $("zoomOut").onclick = () => map?.zoomOut(1, { animate: false });
 $("recenter").onclick = () => {
   if (here) map?.setView(coordinates(here), Math.max(map.getZoom(), 15));
   else {
+    recenterOnFix = true;
     setLive(true);
-    message("Finding your location…");
   }
 };
 $("choose").onclick = openSaved;
