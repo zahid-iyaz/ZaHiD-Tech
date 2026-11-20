@@ -1,10 +1,13 @@
 const DB_KEY = "zahid-tech-pins-v1";
 const GPS_OPTIONS = { enableHighAccuracy: true, timeout: 20000, maximumAge: 0 };
+const SAVE_MAX_AGE = 3000;
+const SAVE_MAX_ACCURACY = 30;
 const $ = id => document.getElementById(id);
 const coordinates = point => [point.lat, point.lng];
 const fromPosition = ({ coords }) => ({ lat: coords.latitude, lng: coords.longitude });
 
 let saved = { pins: [], nextNumber: 1 };
+let latestLiveFix;
 let map, gpsDot, accuracyRing, here, watchId, activeNumber, noticeTimer;
 let live = true;
 let recenterOnFix = true;
@@ -203,6 +206,7 @@ function selectPin(number) {
 }
 
 function updateGPS(position) {
+  latestLiveFix = position;
   here = fromPosition(position);
   $("liveDetail").textContent = "Red dot follows you";
   $("liveLabel").textContent = "Live Location: ON";
@@ -223,6 +227,7 @@ function updateGPS(position) {
 }
 
 function clearGPS() {
+  latestLiveFix = undefined;
   here = null;
   gpsDot?.remove();
   accuracyRing?.remove();
@@ -312,18 +317,33 @@ window.addEventListener("pageshow", event => {
   startTracking();
 });
 
+function canSavePosition(position) {
+  if (!Number.isFinite(position?.timestamp)) return false;
+  const age = Date.now() - position.timestamp;
+  const { accuracy } = position.coords;
+  return age >= 0 && age <= SAVE_MAX_AGE &&
+    Number.isFinite(accuracy) && accuracy >= 0 && accuracy <= SAVE_MAX_ACCURACY;
+}
+
 function currentPosition() {
   return new Promise((resolve, reject) => navigator.geolocation.getCurrentPosition(resolve, reject, GPS_OPTIONS));
 }
 
 $("saveBtn").addEventListener("click", async () => {
   const visit = foregroundVisit;
-  $("saveBtn").disabled = true;
-  message("Getting your GPS location…");
+  const button = $("saveBtn");
+  const label = button.textContent;
+  button.disabled = true;
+  button.textContent = "Saving…";
+  message("Saving your location…");
   try {
-    let position;
+    let position = latestLiveFix;
+    const reuseLiveFix = canSavePosition(position);
     try {
-      position = await currentPosition();
+      if (!reuseLiveFix) {
+        message("Getting your GPS location…");
+        position = await currentPosition();
+      }
     } catch (error) {
       if (visit === foregroundVisit && isForeground()) {
         message(`${gpsError(error)}. Check location permissions or try again.`);
@@ -331,6 +351,10 @@ $("saveBtn").addEventListener("click", async () => {
       return;
     }
     if (visit !== foregroundVisit || !isForeground()) return;
+    if (!reuseLiveFix && !canSavePosition(position)) {
+      message("GPS fix was too old or inaccurate. Wait for a stronger signal and try again.");
+      return;
+    }
     try {
       const { pins, nextNumber } = readSaved();
       const pin = { ...fromPosition(position), number: nextNumber };
@@ -341,7 +365,8 @@ $("saveBtn").addEventListener("click", async () => {
       message("Could not save the pin. Check device storage and try again.");
     }
   } finally {
-    $("saveBtn").disabled = false;
+    button.textContent = label;
+    button.disabled = false;
   }
 });
 
