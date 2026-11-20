@@ -1,0 +1,15 @@
+{
+  "id": "./",
+  "name": "ZaHiD Tech",
+  "short_name": "ZaHiD Tech",
+  "description": "Save your GPS position and navigate back to your nearest saved pin.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#112e55",
+  "icons": [
+    { "src": "./icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "./icon-512.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}
