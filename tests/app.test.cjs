@@ -262,3 +262,71 @@ test("cancelling a valid restore leaves saved locations and numbering intact", a
   assert.equal(app.get("backupRestoreStatus").textContent, "Restore cancelled.");
   assert.equal(storage.data, original);
 });
+
+const shareUrl = "https://zahid-iyaz.github.io/ZaHiD-Tech/";
+
+test("Share App invokes native sharing during the tap with the app details", async () => {
+  let shared;
+  const app = openApp({ writeText: () => assert.fail("Unexpected clipboard write") }, {
+    async share(data) { shared = { ...data }; }
+  });
+
+  const sharing = app.get("shareApp").onclick();
+  assert.deepEqual(shared, {
+    title: "ZaHiD Tech — Pin & Find",
+    text: "Save your favourite locations and navigate back easily with ZaHiD Tech!",
+    url: shareUrl
+  });
+  await sharing;
+  assert.equal(app.get("shareStatus").textContent, "");
+  assert.equal(app.get("shareDialog").open, undefined);
+});
+
+test("cancelling Share App leaves no status and skips both fallbacks", async () => {
+  let copied = false;
+  const app = openApp({ async writeText() { copied = true; } }, {
+    async share() { throw new DOMException("Cancelled", "AbortError"); }
+  });
+
+  await app.get("shareApp").onclick();
+  assert.equal(copied, false);
+  assert.equal(app.get("shareStatus").textContent, "");
+  assert.equal(app.get("shareDialog").open, undefined);
+});
+
+test("Share App copies the URL and confirms it when native sharing is unavailable", async () => {
+  let copied;
+  const app = openApp({ async writeText(text) { copied = text; } });
+
+  await app.get("shareApp").onclick();
+  assert.equal(copied, shareUrl);
+  assert.equal(app.get("shareStatus").textContent, "App link copied.");
+  assert.equal(app.get("shareDialog").open, undefined);
+});
+
+test("Share App falls back to copying when the native share request fails", async () => {
+  let copied;
+  const app = openApp({ async writeText(text) { copied = text; } }, {
+    async share() { throw new DOMException("Sharing unavailable", "NotAllowedError"); }
+  });
+
+  await app.get("shareApp").onclick();
+  assert.equal(copied, shareUrl);
+  assert.equal(app.get("shareStatus").textContent, "App link copied.");
+});
+
+test("Share App offers a selectable URL when clipboard access is missing or denied", async () => {
+  for (const clipboard of [undefined, { async writeText() { throw new Error("Clipboard denied"); } }]) {
+    const app = openApp(clipboard);
+    const field = app.get("shareUrl");
+    let selected = false;
+    field.select = () => { selected = true; };
+
+    await app.get("shareApp").onclick();
+    assert.equal(app.get("shareDialog").open, true);
+    assert.equal(field.value, shareUrl);
+    assert.equal(app.get("shareStatus").textContent, "");
+    field.onclick({ currentTarget: field });
+    assert.equal(selected, true);
+  }
+});
